@@ -3,17 +3,17 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>http://blog.gavinwork.space/categories/</loc>
+    <loc>https://goodloop.github.io/categories/</loc>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>http://blog.gavinwork.space/</loc>
+    <loc>https://goodloop.github.io/</loc>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>http://blog.gavinwork.space/tags/</loc>
+    <loc>https://goodloop.github.io/tags/</loc>
     <priority>0</priority>
   </url>
   
