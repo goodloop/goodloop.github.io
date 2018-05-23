@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.40.3" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>使用Cython加密Python code（1） &middot; Gavin&#39;s Blog</title>
+
+  
+  <link type="text/css" rel="stylesheet" href="https://goodloop.github.io/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://goodloop.github.io/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://goodloop.github.io/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://goodloop.github.io/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  <link href="" rel="alternate" type="application/rss+xml" title="Gavin&#39;s Blog" />
+
+  
+</head>
+
+  <body class="theme-base-0d ">
+  <div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://goodloop.github.io/"><h1>Gavin&#39;s Blog</h1></a>
+      <p class="lead">
+       Gavin的CV记录 
+      </p>
+    </div>
+
+    <ul class="sidebar-nav">
+      <li><a href="https://goodloop.github.io/">Home</a> </li>
+      
+    </ul>
+
+    <p>&copy; 2018. All rights reserved. </p>
+  </div>
+</div>
+
+    <div class="content container">
+    <div class="post">
+  <h1>使用Cython加密Python code（1）</h1>
+  <span class="post-date">Wed, May 23, 2018</span>
+  
+
+<h3 id="为什么需要在项目中引入cython模块">为什么需要在项目中引入cython模块</h3>
+
+<ol>
+<li>在python版本的mtcnn需要100多ms才能做完一次detection，而相同功能的c++的library通过封装后，就能做到只需要10几个ms就能轻松搞定。</li>
+<li>python的代码加密，由于有一些商业敏感的内容在python的代码中。如果部署在客户那里，就需要有一套比较合适的加密机制。</li>
+</ol>
+
+<h3 id="c-的封装">c++的封装</h3>
+
+<ol>
+<li><p>首先需要在conda或者virtualenv的环境中通过pip安装cython</p>
+
+<pre><code class="language-shell">pip install cython==0.28.2
+</code></pre></li>
+
+<li><p>编译c++的功能实现，目前我采用的做法是实现的库文件尽量的编译成静态库，这样引用关系相对单纯很多。现在一般项目用cmake写，编译静态库非常的方便。</p></li>
+
+<li><p>封装功能的实现</p>
+
+<ol>
+<li><p>setup.py文件，这个文件的主要功能是生成编译和安装脚本</p>
+
+<pre><code class="language-python">import setuptools
+from distutils.core import setup
+from distutils.extension import Extension
+from Cython.Build import cythonize
+import numpy
+        
+extensions = [
+    Extension(
+        'mtcnn_ext',
+        ['mtcnn_ext.pyx'],
+        language=&quot;c++&quot;,  # generate C++ code
+        include_dirs=['../include', '../../lib_a', '../../lib_b', numpy.get_include()],
+        library_dirs=['/path/to/some/extra/library/dir', '.'],
+        libraries=['opencv_core', 'opencv_imgproc'],
+        extra_compile_args=['-std=c++11'],
+        # for mac
+        # extra_compile_args=['-std=c++11', '-mmacosx-version-min=10.9'],
+        extra_objects=['../../build/lib_a/lib_a.a', '../../build/lib_b/lib_b.a'])
+]
+        
+setup(
+    name='mtcnn_ext',
+    version='0.2.3',
+    ext_modules=cythonize(extensions), )
+</code></pre>
+
+<p><strong>NOTE:</strong> 如果需要编译mac的版本extra_compile_args要改成注释的部分。不然后又类似于array头文件找不到之类的错误。</p></li>
+
+<li><p>pyx文件，这个文件需要注意的地方有：</p>
+
+<ol>
+<li><p>c++的结构体定义和函数定义，得对应起来（有点像封装jni的时候做的事情），这里仅用opencv里的一些定义作为示例。</p>
+
+<pre><code class="language-cython">cdef extern from &quot;opencv2/core/core.hpp&quot;:
+    cdef int CV_8UC1
+    cdef int CV_8UC3
+cdef extern from &quot;opencv2/core/core.hpp&quot; namespace &quot;cv&quot;:
+                
+    cdef cppclass Mat:
+        Mat() except+
+        void create(int, int, int)
+        void* data
+        int rows
+        int cols
+        int channels()
+                
+    cdef cppclass Rect_[_Tp]:
+        _Tp x
+        _Tp y
+        _Tp width
+        _Tp height
+                
+    ctypedef Rect_[int] Rect
+            
+    cdef cppclass Point_[_Tp]:
+        _Tp x
+        _Tp y
+                
+    ctypedef Point_[float] Point2
+                
+    cdef cppclass MTNCNN:
+        MTNCNN() except+
+        detect(xxx,xxx,xxx)
+</code></pre></li>
+
+<li><p>封装一个python的cdef class供python接口调用</p>
+
+<pre><code class="language-cython">cdef class PyMtcnn:
+    cdef MTNCNN* c_mtcnn
+    def __cinit__(self):
+        self.c_mtcnn = new MTNCNN()
+            
+    def __dealloc(self):
+        del self.c_mtcnn
+</code></pre></li>
+
+<li><p>编译cython模块的so</p>
+
+<pre><code class="language-shell"># 调试
+python setup.py build_ext --inplace
+
+# 打包
+python setup.py bdist_wheel
+</code></pre></li>
+
+<li><p>python code调用</p>
+
+<pre><code class="language-python">import mtcnn_ext
+mtcnn = mtcnn_ext.PyMtcnn()
+mtcnn.detect(xxx,xxx,xxx)
+</code></pre></li>
+</ol></li>
+</ol></li>
+</ol>
+
+<p>c++的封装基本流程就是这样。貌似这篇记录已经有点长了，python的加密部分放到下一篇吧。</p>
+
+</div>
+
+
+    </div>
+
+    
+  </body>
+</html>

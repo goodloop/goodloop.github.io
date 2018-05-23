@@ -6,9 +6,37 @@
     <description>Recent content in Tags on Gavin&#39;s Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
+    <lastBuildDate>Wed, 23 May 2018 11:35:02 +0800</lastBuildDate>
     
 	<atom:link href="https://goodloop.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Cython</title>
+      <link>https://goodloop.github.io/tags/cython/</link>
+      <pubDate>Wed, 23 May 2018 11:35:02 +0800</pubDate>
+      
+      <guid>https://goodloop.github.io/tags/cython/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Deployment</title>
+      <link>https://goodloop.github.io/tags/deployment/</link>
+      <pubDate>Wed, 23 May 2018 11:35:02 +0800</pubDate>
+      
+      <guid>https://goodloop.github.io/tags/deployment/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Python</title>
+      <link>https://goodloop.github.io/tags/python/</link>
+      <pubDate>Wed, 23 May 2018 11:35:02 +0800</pubDate>
+      
+      <guid>https://goodloop.github.io/tags/python/</guid>
+      <description></description>
+    </item>
     
   </channel>
 </rss>
